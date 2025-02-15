@@ -3,7 +3,6 @@ const { google } = require("googleapis");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const fs = require("fs");
 
 dotenv.config();
 
@@ -13,7 +12,6 @@ app.use(cookieParser());
 app.use(express.json());
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.send"];
-
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
@@ -24,25 +22,17 @@ const oauth2Client = new google.auth.OAuth2(
   REDIRECT_URI
 );
 
-// Load AI-generated content dynamically (Placeholder for ChatGPT API)
-const getAIContent = async () => {
-  return {
-    subject: "Your AI-Generated Job Application",
-    body: "Dear Hiring Manager,\n\nI am excited to apply for the position...\n\nBest regards,\nJohn Doe",
-    recipient: "employer@example.com", // Placeholder
-  };
-};
-
-// Step 1: Redirect user to Google OAuth login
+// 🔹 STEP 1: Redirect User to Google OAuth Login
 app.get("/auth", (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
-    access_type: "offline",
+    access_type: "offline", // Get a refresh token
     scope: SCOPES,
+    prompt: "consent", // Force the user to pick an account
   });
   res.redirect(authUrl);
 });
 
-// Step 2: Google OAuth Callback
+// 🔹 STEP 2: Handle OAuth Callback & Get Tokens
 app.get("/auth/callback", async (req, res) => {
   const code = req.query.code;
   if (!code) return res.status(400).send("No code received.");
@@ -51,33 +41,42 @@ app.get("/auth/callback", async (req, res) => {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    // Save token in cookies (or DB for persistent login)
+    // Store Refresh Token (Persistent Login)
     res.cookie("gmail_token", tokens.refresh_token, { httpOnly: true });
 
-    // Redirect to a placeholder loading page
-    res.redirect("https://yourwebsite.com/loading"); // Replace with your actual URL
+    // Redirect user to success page
+    res.redirect("https://yourwebsite.com/success"); // Change to your actual frontend URL
   } catch (error) {
     console.error("Error getting token:", error);
     res.status(500).send("Authentication failed");
   }
 });
 
-// Step 3: Send Email
+// 🔹 STEP 3: AI Content Generator (Placeholder)
+const getAIContent = async () => {
+  return {
+    subject: "Your AI-Generated Job Application",
+    body: "Dear Hiring Manager,\n\nI am excited to apply for the position...\n\nBest regards,\nJohn Doe",
+    recipient: "employer@example.com", // Placeholder email
+  };
+};
+
+// 🔹 STEP 4: Send Email via Gmail API
 app.post("/send-email", async (req, res) => {
   try {
-    // Get AI-generated content (Replace with ChatGPT API integration)
+    // Fetch AI-generated email content
     const aiContent = await getAIContent();
     const { subject, body, recipient } = aiContent;
 
     // Retrieve user token from cookies
     const token = req.cookies.gmail_token;
-    if (!token) return res.status(401).send("Unauthorized");
+    if (!token) return res.status(401).send("Unauthorized: No token found");
 
     oauth2Client.setCredentials({ refresh_token: token });
 
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    // Create email body
+    // Create email content
     const email = [
       `To: ${recipient}`,
       "Content-Type: text/plain; charset=\"UTF-8\"",
@@ -87,13 +86,14 @@ app.post("/send-email", async (req, res) => {
       body,
     ].join("\n");
 
-    const encodedEmail = Buffer.from(email).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
+    const encodedEmail = Buffer.from(email)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
 
     await gmail.users.messages.send({
       userId: "me",
-      requestBody: {
-        raw: encodedEmail,
-      },
+      requestBody: { raw: encodedEmail },
     });
 
     res.json({ success: true, message: "Email sent successfully" });
@@ -103,8 +103,8 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-// Server Listen
+// 🔹 STEP 5: Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
