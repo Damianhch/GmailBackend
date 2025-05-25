@@ -45,7 +45,7 @@ app.get("/auth/google/callback", async (req, res) => {
     res.cookie("gmail_token", tokens.refresh_token, { httpOnly: true });
 
     // Redirect user to success page
-    res.redirect("https://yourwebsite.com/success"); // Change to your actual frontend URL
+    res.redirect("https://easyapply.asoldi.com/spesifikasjoner"); // Change to your actual frontend URL
   } catch (error) {
     console.error("Error getting token:", error);
     res.status(500).send("Authentication failed");
