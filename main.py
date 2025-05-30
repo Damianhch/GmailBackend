@@ -2,6 +2,7 @@ from emailscraper import append_emails
 from osm import query_osm_businesses
 import os
 from dotenv import load_dotenv
+import json
 
 # Load variables from .env file into environment
 load_dotenv()
@@ -20,6 +21,5 @@ b0 = query_osm_businesses(lat, lon, radius=r)
 
 append_emails(b0)
 
-
-for i in range(len(b0)):
-    print(b0[i]["name"], b0[i]["email"])
+with open("output.json", "w", encoding="utf-8") as f:
+    json.dump(b0, f, ensure_ascii=False, indent=4)
